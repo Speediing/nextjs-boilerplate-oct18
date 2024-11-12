@@ -52,12 +52,13 @@ async function getData() {
  */
 export default async function Home() {
   const response = await getData();
-  const content = parseJsonContent(response.desktop, baseConfig)
+  const { contentString, scriptString } = parseJsonContent(response.desktop, baseConfig)
   return (
     <main className="container mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold mb-6">Pottery Barn Home</h1>
       <div className="responsive-content responsive-content-page MFE-HOMEPAGE" data-style="content-page">
-        <div dangerouslySetInnerHTML={{ __html: content }} />
+        <div dangerouslySetInnerHTML={{ __html: contentString }} />
+        <div dangerouslySetInnerHTML={{ __html: scriptString }} />
       </div>
     </main>
   )

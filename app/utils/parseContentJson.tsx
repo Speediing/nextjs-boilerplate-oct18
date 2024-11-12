@@ -5,6 +5,8 @@ const VIMEO_VIDEO = "vimeo";
 let contentVimeoThumbnail = false;
 let dataContent: string | string[] | null;
 
+const scripts = [];
+
 /**
  * Parses JSON from ecom-svc-content-webapp into an HTML string
  * @param { array } contentArray - the array of json objects to parse
@@ -13,14 +15,20 @@ let dataContent: string | string[] | null;
  */
 export function parseJsonContent(contentArray: any[], config: { assetsUrl: string; applicationUri: string; headers: { "paw-base-context": string; "paw-request-time": string; "paw-application-uri": string; "paw-asset-uris": string; "paw-active-generations": string; "paw-active-properties": string; "paw-context": string; "paw-service-3": string; "paw-context-3": string; "paw-service-5": string; "paw-service-1": string; "paw-context-1": string; "paw-service-2": string; "paw-context-2": string; "paw-services-2": string; "paw-service-4": string; }; social: { facebook: { appId: string; fbLikeButtonEnabled: boolean; }; pinterest: { pinterestEnabled: boolean; }; }; }) {
     let contentString = "";
-
+    let scriptString = "";
     // Apply the parser logic to each element in the data array
     if (contentArray.length) {
         contentArray.forEach((content) => {
-            contentString += getParsedContent(content, config);
+            const newContent = getParsedContent(content, config);
+            contentString += newContent;
         });
     }
-    return contentString;
+    let scriptMatches = contentString.matchAll(/<noscript(.+?)\/noscript>/gms);
+    for(const script of scriptMatches) {
+        let newScript = script[0].trim().replaceAll("noscript", "script");
+        scriptString += newScript;
+    };
+    return { contentString, scriptString };
 }
 
 /**
@@ -47,7 +55,7 @@ const getParsedContent = (content: { type: any; data: any; }, config: { assetsUr
 
         case "wsgc.ecmasseturl":
             // This provides an absolute url for ecm images etc
-            const root = config.assetsUrl;
+            const root = config.applicationUri;
             return root + _removePreceedingSlash(data.url);
 
         case "ecm.includeAccordionScript":
@@ -377,11 +385,14 @@ const _removePreceedingSlash = (path: string) => {
  * @param content {string} the string gto process
  * @return {string} Update specific tags to allow correct rendering
  */
-const _cleanContent = (content: string) =>
-    content
-        .replace(/<script/gi, "<noscript  data-tag-name='script'")
-        .replace(/<\/script/gi, "</noscript")
+const _cleanContent = (content: string) => {
+    let cleanContent = content
+        .replace(/<noscript\W*data-tag-name=\"script\"(.+?)(<\/noscript>)/gmis, "<noscript type='text/javascript'$1</noscript>")
+        .replace(/\&quot;/gmi, "'")
+        .replace(/\&gt;/gmi, ">")
         .replace(/<body/gi, "<div")
-        .replace(/<\/body/gi, "</div")
-        .replace(/<style/gi, "<noscript data-tag-name='style'")
-        .replace(/<\/style/gi, "</noscript");
+        .replace(/<\/body/gi, "</div");
+    
+    return cleanContent;
+}
+    
